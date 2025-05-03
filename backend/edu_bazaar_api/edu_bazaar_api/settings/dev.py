@@ -9,12 +9,14 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import sys
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# 新增apps作为导包路径，导包路径默认保存sys.path属性中，所有的python的import或者from导包语句默认都是从sys.path中记录的路径下查找模块
+sys.path.insert(0, str( BASE_DIR / "apps") )
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -37,6 +39,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    'rest_framework',
+    'home',
 ]
 
 MIDDLEWARE = [
@@ -73,10 +78,22 @@ WSGI_APPLICATION = 'edu_bazaar_api.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.sqlite3',
+    #     'NAME': BASE_DIR / 'db.sqlite3',
+    # }
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        'NAME': 'edu_bazaar',
+        'HOST': '127.0.0.1',
+        'PORT': 5432,  # Postgres SQL默认端口
+        'USER': 'edu_bazaar_user',
+        'PASSWORD': 'edu_bazaar',
+        "OPTIONS": {
+            "pool": True,
+        },
+        'CONN_MAX_AGE': 300,  # 持久连接（秒），替代连接池
+    },
 }
 
 
@@ -181,3 +198,45 @@ LOGGING = {
         },
     }
 }
+
+# drf配置
+REST_FRAMEWORK = {
+    # 自定义异常处理
+    'EXCEPTION_HANDLER': 'edu_bazaar_api.utils.exceptions.exception_handler',
+}
+
+# redis configration
+# https://django-redis-chs.readthedocs.io/zh_CN/latest/#
+# 设置redis缓存
+CACHES = {
+    # 默认缓存
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        # 项目上线时,需要调整这里的路径
+        "LOCATION": "redis://:123456@127.0.0.1:6379/0",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    },
+    # 提供给admin站点的session存储
+    "session": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://:123456@127.0.0.1:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    },
+    # 提供存储短信验证码
+    "sms_code":{
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://:123456@127.0.0.1:6379/2",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+
+# 设置用户登录admin站点时,记录登录状态的session保存到redis缓存中
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+# 设置session保存的位置对应的缓存配置项
+SESSION_CACHE_ALIAS = "session"
