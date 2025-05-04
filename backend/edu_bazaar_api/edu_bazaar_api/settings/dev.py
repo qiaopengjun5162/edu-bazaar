@@ -9,14 +9,30 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
+import environ
+import os
 import sys
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+print(f"BASE_DIR: {BASE_DIR}")
 
+# 应用目录（包含 apps 和 utils）
+APP_DIR = BASE_DIR / "edu_bazaar_api"
+print(f"APP_DIR: {APP_DIR}")
 # 新增apps作为导包路径，导包路径默认保存sys.path属性中，所有的python的import或者from导包语句默认都是从sys.path中记录的路径下查找模块
-sys.path.insert(0, str( BASE_DIR / "apps") )
+sys.path.insert(0, str( APP_DIR / "apps") )
+sys.path.insert(0, str( APP_DIR / "utils") )
+
+env = environ.Env(
+    # set casting, default value
+    DEBUG=(bool, False)
+)
+env.read_env(os.path.join(BASE_DIR, '.env'))
+print(f"DEBUG: {env('DEBUG')}")
+print(f"SECRET_KEY: {env('SECRET_KEY')}")
+print(f"env.db(): {env.db()}")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -41,10 +57,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'rest_framework',
+    'corsheaders', # cors跨域子应用
     'home',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # cors跨域的中间件
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -182,7 +200,7 @@ LOGGING = {
             'level': 'DEBUG',
             'class': 'logging.handlers.RotatingFileHandler',
             # 日志位置,日志文件名，日志保存目录logs必须手动创建
-            'filename': BASE_DIR.parent / "logs/edu_bazaar.log",
+            'filename': BASE_DIR / "logs/edu_bazaar.log",
             # 单个日志文件的最大值，这里我们设置300M
             'maxBytes': 300 * 1024 * 1024,
             # 备份日志文件的数量，设置最大日志数量为10
@@ -240,3 +258,13 @@ CACHES = {
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 # 设置session保存的位置对应的缓存配置项
 SESSION_CACHE_ALIAS = "session"
+
+# CORS的配置信息:~
+# 方案1：
+# CORS_ORIGIN_WHITELIST = (
+#     'http://www.edubazaar.cn:3000',
+# )
+# CORS_ALLOW_CREDENTIALS = False  # 不允许ajax跨域请求时携带cookie
+
+# 方案2：
+CORS_ALLOW_ALL_ORIGINS = True
